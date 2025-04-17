@@ -75,11 +75,6 @@ If you are running a test-setup, you can use DB_PASSWORD that is defined in the 
 DB_PASSWORD=krTa9YVz7MwYcOLCZ0QKZ3eYHlSCtsX+AvxxN7dN
 ```
 
-## Database Setup
-```
-make setup
-```
-
 ## Configuration
 
 Configuration of the propagator, consumer and other database settings is done via `config.yaml` file
