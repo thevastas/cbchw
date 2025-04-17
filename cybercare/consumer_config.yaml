@@ -1,0 +1,16 @@
+# Event Consumer Configuration
+
+# HTTP server configuration
+server:
+  port: ${SERVER_PORT}
+  host: ${SERVER_HOST}
+
+# Database configuration
+database:
+  type: postgres
+  host: ${DB_HOST}
+  port: ${DB_PORT}
+  name: ${DB_NAME}
+  user: ${DB_USER}
+  password: ${DB_PASSWORD}
+  table_name: events

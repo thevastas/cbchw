@@ -1,0 +1,76 @@
+repos:
+# Basic pre-commit hooks
+-   repo: https://github.com/pre-commit/pre-commit-hooks
+    rev: v4.4.0
+    hooks:
+    -   id: trailing-whitespace
+    -   id: end-of-file-fixer
+    -   id: check-yaml
+    -   id: check-added-large-files
+    -   id: debug-statements
+    -   id: check-merge-conflict
+
+# Sort imports with isort
+-   repo: https://github.com/pycqa/isort
+    rev: 5.12.0
+    hooks:
+    -   id: isort
+        name: isort (python)
+
+# Format code with black
+-   repo: https://github.com/psf/black
+    rev: 23.3.0
+    hooks:
+    -   id: black
+        language_version: python3
+
+# Check code style with flake8
+-   repo: https://github.com/pycqa/flake8
+    rev: 6.0.0
+    hooks:
+    -   id: flake8
+        additional_dependencies: [
+            # Add flake8 plugins as needed
+            flake8-bugbear,
+            flake8-comprehensions,
+            flake8-docstrings,
+            flake8-implicit-str-concat,
+        ]
+        args: [
+            "--max-line-length=120",
+            "--extend-ignore=E203,D100,D10",
+        ]
+
+# Check with pylint
+-   repo: https://github.com/pycqa/pylint
+    rev: v2.17.0
+    hooks:
+    -   id: pylint
+        name: pylint
+        entry: pylint
+        language: system
+        types: [python]
+        args: [
+            "--rcfile=.pylintrc",  # Use your pylintrc file
+            "--score=no",  # Don't show the score
+            "--disable=import-error",  # Avoid import errors in pre-commit environment
+        ]
+        exclude: ^(tests/|docs/)
+
+# Type checking with mypy (optional but recommended)
+-   repo: https://github.com/pre-commit/mirrors-mypy
+    rev: v1.3.0
+    hooks:
+    -   id: mypy
+        additional_dependencies: [
+          types-requests,
+          types-PyYAML,
+          types-requests,
+          types-psycopg2,
+        ]
+        args: [
+            "--ignore-missing-imports",
+            "--disallow-untyped-defs",
+            "--disallow-incomplete-defs",
+        ]
+        exclude: ^(tests/|docs/)

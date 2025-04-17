@@ -1,0 +1,10 @@
+# Event Propagator Configuration
+
+# Time period in seconds between events
+period: ${PROPAGATOR_PERIOD}
+
+# HTTP API endpoint to send events
+endpoint: ${PROPAGATOR_ENDPOINT}
+
+# Path to the JSON file containing events
+events_file: ${PROPAGATOR_EVENTS_FILE}
