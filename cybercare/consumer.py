@@ -192,7 +192,6 @@ def main() -> None:
     host = server_config.get("host", "0.0.0.0")
     port = server_config.get("port", 8000)
 
-    # Store storage in app.state instead of using a global variable
     app.state.storage = PostgresEventStorage(db_config)
 
     logging.info("Starting Event Consumer service on %s:%s", host, port)

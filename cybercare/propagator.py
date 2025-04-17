@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 
 import requests
 
-from cybercare.utils import setup_basic_app
+from .utils import setup_basic_app
 
 
 def load_events(file_path: str) -> List[Dict[str, Any]]:

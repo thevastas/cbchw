@@ -84,7 +84,6 @@ class TestEventPropagator(unittest.TestCase):
             "http://test-endpoint/event", json=event, timeout=10
         )
 
-    # Add a new test for the timeout parameter
     @patch("requests.post")
     def test_send_event_with_custom_timeout(self, mock_post):
         mock_response = MagicMock()
