@@ -28,8 +28,17 @@ def load_events(file_path: str) -> List[Dict[str, Any]]:
     try:
         with open(file_path, "r", encoding="utf-8") as f:
             return json.load(f)
-    except (json.JSONDecodeError, FileNotFoundError) as e:
-        logging.error("Failed to load events from %s: %s", file_path, e)
+    except json.JSONDecodeError as e:
+        logging.error("Invalid JSON in events file %s: %s", file_path, e)
+        return []
+    except FileNotFoundError:
+        logging.error("Events file not found: %s", file_path)
+        return []
+    except PermissionError:
+        logging.error("Permission denied when accessing events file: %s", file_path)
+        return []
+    except Exception as e:  # pylint: disable=broad-exception-caught
+        logging.error("Unexpected error loading events from %s: %s", file_path, e)
         return []
 
 

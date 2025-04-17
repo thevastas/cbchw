@@ -83,8 +83,14 @@ class PostgresEventStorage:
                         (event.get("event_type", ""), event.get("event_payload", "")),
                     )
                 return True
+        except psycopg2.OperationalError as e:
+            logging.error("Database connection error: %s", e)
+            return False
+        except psycopg2.DatabaseError as e:
+            logging.error("Database error when storing event: %s", e)
+            return False
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logging.error("Error storing event: %s", e)
+            logging.error("Unexpected error storing event: %s", e)
             return False
 
 
@@ -100,16 +106,14 @@ def validate_event(event: Dict[str, Any]) -> bool:
     Returns:
         bool: True if the event is valid, False otherwise
     """
+    required_fields = {"event_type": str, "event_payload": str}
+
     if not isinstance(event, dict):
         return False
 
-    if "event_type" not in event or "event_payload" not in event:
-        return False
-
-    if not isinstance(event["event_type"], str) or not isinstance(
-        event["event_payload"], str
-    ):
-        return False
+    for field, expected_type in required_fields.items():
+        if field not in event or not isinstance(event[field], expected_type):
+            return False
 
     return True
 
@@ -168,22 +172,21 @@ def main() -> None:
     Sets up logging, loads configuration, initializes storage,
     and starts the FastAPI server.
     """
-    config = setup_basic_app("Event Consumer", "consumer")
+    full_config = setup_basic_app("Event Consumer")
 
-    if not config:
+    if not full_config:
         logging.error("Configuration is empty or invalid. Exiting.")
         return
 
-    server_config = config.get("server", {})
-    # Note: database config is now at the top level
-    db_config = setup_basic_app("Event Consumer", "database")
+    consumer_config = full_config.get("consumer", {})
+    db_config = full_config.get("database", {})
 
+    server_config = consumer_config.get("server", {})
     host = server_config.get("host", "0.0.0.0")
     port = server_config.get("port", 8000)
 
     app.state.storage = PostgresEventStorage(db_config)
-
-    logging.info("Starting Event Cons   umer service on %s:%s", host, port)
+    logging.info("Starting Event Consumer service on %s:%s", host, port)
     uvicorn.run(app, host=host, port=port)
 
 

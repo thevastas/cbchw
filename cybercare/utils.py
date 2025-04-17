@@ -9,7 +9,7 @@ and command-line argument parsing.
 import argparse
 import logging
 import os
-import re
+import string
 from typing import Any, Dict, Optional
 
 import yaml
@@ -30,19 +30,11 @@ def load_config(config_path: str) -> Dict[str, Any]:
                         or an empty dict if loading fails
     """
     try:
-        if not os.path.exists(config_path):
-            logging.error("Configuration file not found: %s", config_path)
-            return {}
-
         with open(config_path, "r", encoding="utf-8") as f:
             config_content = f.read()
 
-        # Replace environment variables in a single pass
-        config_content = re.sub(
-            r"\${([^}]+)}",
-            lambda m: os.environ.get(m.group(1), f"${{{m.group(1)}}}"),
-            config_content,
-        )
+        template = string.Template(config_content)
+        config_content = template.safe_substitute(os.environ)
 
         return yaml.safe_load(config_content)
     except FileNotFoundError:

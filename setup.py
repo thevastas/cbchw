@@ -1,5 +1,5 @@
 """
-Cybercare package installation script.
+Package installation script.
 
 This script handles the installation of the Cybercare package and its dependencies.
 It uses setuptools to define package metadata, entry points, and requirements.
@@ -10,7 +10,7 @@ from setuptools import find_packages, setup
 setup(
     name="cybercare",
     version="0.1.0",
-    description="Cyber security event handling system",
+    description="Event handling system",
     packages=find_packages(),
     install_requires=[
         "fastapi",
