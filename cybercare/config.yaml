@@ -1,0 +1,25 @@
+# Database settings
+database:
+  type: postgres
+  host: localhost
+  port: 5433
+  name: events_db
+  user: odoo
+  # Password is loaded from environment variable
+  password: ${DB_PASSWORD}
+  table_name: events
+
+# Consumer service settings
+consumer:
+  server:
+    host: 0.0.0.0
+    port: 8000
+
+# Propagator service settings
+propagator:
+  # Time period in seconds between events
+  period: 5
+  # HTTP API endpoint to send events
+  endpoint: http://localhost:8000/event
+  # Path to the JSON file containing events
+  events_file: events.json

@@ -180,14 +180,15 @@ def main() -> None:
     Sets up logging, loads configuration, initializes storage,
     and starts the FastAPI server.
     """
-    config = setup_basic_app("Event Consumer", "consumer_config.yaml")
+    config = setup_basic_app("Event Consumer", "consumer")
 
     if not config:
         logging.error("Configuration is empty or invalid. Exiting.")
         return
 
     server_config = config.get("server", {})
-    db_config = config.get("database", {})
+    # Note: database config is now at the top level
+    db_config = setup_basic_app("Event Consumer", "database")
 
     host = server_config.get("host", "0.0.0.0")
     port = server_config.get("port", 8000)

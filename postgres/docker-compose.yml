@@ -1,0 +1,20 @@
+services:
+  postgres:
+    container_name: postgres
+    image: postgres:15
+    env_file: .env
+    shm_size: 10g
+    volumes:
+      - db:/var/lib/postgresql/data/pgdata
+    ports:
+      - "5433:5432"
+    command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
+    networks:
+      - shared-network
+    restart: always
+networks:
+  shared-network:
+    external: true
+    name: shared-network
+volumes:
+  db:

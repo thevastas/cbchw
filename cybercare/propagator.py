@@ -13,7 +13,7 @@ from typing import Any, Dict, List
 
 import requests
 
-from .utils import setup_basic_app
+from cybercare.utils import setup_basic_app
 
 
 def load_events(file_path: str) -> List[Dict[str, Any]]:
@@ -70,7 +70,7 @@ def main() -> None:
     Sets up logging, loads configuration and events,
     and periodically sends events to the configured endpoint.
     """
-    config = setup_basic_app("Event Propagator", "propagator_config.yaml")
+    config = setup_basic_app("Event Propagator", "propagator")
 
     if not config:
         logging.error("Failed to load configuration. Exiting.")

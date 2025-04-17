@@ -10,7 +10,7 @@ import argparse
 import logging
 import os
 import re
-from typing import Any, Dict
+from typing import Any, Dict, Optional
 
 import yaml
 from dotenv import load_dotenv
@@ -59,18 +59,21 @@ def load_config(config_path: str) -> Dict[str, Any]:
         return {}
 
 
-def setup_basic_app(app_name: str, default_config_path: str) -> Dict[str, Any]:
+def setup_basic_app(
+    app_name: str, section_name: Optional[str] = None
+) -> Dict[str, Any]:
     """Set up basic application configuration.
 
     This function initializes logging, loads environment variables,
-    parses command line arguments, and loads the configuration file.
+    parses command line arguments, and loads the configuration from
+    the specified section of the configuration file.
 
     Args:
         app_name (str): Name of the application
-        default_config_path (str): Default path to the configuration file
+        section_name (Optional[str]): Section name in the config file (if None, returns the entire config)
 
     Returns:
-        Dict[str, Any]: The loaded configuration
+        Dict[str, Any]: The loaded configuration section
     """
     logging.basicConfig(
         level=logging.INFO,
@@ -82,8 +85,8 @@ def setup_basic_app(app_name: str, default_config_path: str) -> Dict[str, Any]:
     parser.add_argument(
         "--config",
         type=str,
-        default=default_config_path,
-        help=f"Path to the configuration file (default: {default_config_path})",
+        default="config.yaml",
+        help="Path to the configuration file (default: config.yaml)",
     )
     args = parser.parse_args()
 
@@ -91,5 +94,10 @@ def setup_basic_app(app_name: str, default_config_path: str) -> Dict[str, Any]:
 
     if not config:
         logging.error("Configuration is empty or invalid.")
+        return {}
+
+    # Return the specific section if requested, otherwise return the entire config
+    if section_name and section_name in config:
+        return config[section_name]
 
     return config
