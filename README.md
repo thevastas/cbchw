@@ -49,46 +49,36 @@ Features:
 - Uses PostgreSQL database for event storage
 - Validates incoming event format
 
-## Requirements
-
-- Python 3.8+
-- PostgreSQL database
-
 ## Installation
 
 1. Clone the repository
 2. Install the package and dependencies:
 
 ```bash
-# Install in development mode
+# Create a virtual environment and activate it
+python -m venv venv && source venv/bin/activate
+
+# Install python module in development mode
 pip install -e .
-
-# Or install requirements directly
-pip install -r requirements.txt
 ```
-
-3. Create a `.env` file with your configuration (use the provided template as a reference)
 
 ## Environment Variables
 
-Sensitive information is stored in a `.env` file. A template is provided in this repository - rename it to `.env` and fill in your own values:
+Sensitive information is stored in a `.env` file:
 
 ```
 # Database configuration
 DB_PASSWORD=postgres
 ```
 
+If you are running a test-setup, you can use DB_PASSWORD that is defined in the `.env` file in postgres directory:
+```
+DB_PASSWORD=krTa9YVz7MwYcOLCZ0QKZ3eYHlSCtsX+AvxxN7dN
+```
+
 ## Database Setup
-
-Before running the services, initialize the PostgreSQL database:
-
-1. An example docker container for the PostgreSQL server is given in `postgres` directory
-2. Make sure your PostgreSQL server is running
-3. Run the database initialization script:
-
-```bash
-chmod +x db_init_script.sh
-./db_init_script.sh
+```
+make setup
 ```
 
 ## Configuration
@@ -97,21 +87,20 @@ Configuration of the propagator, consumer and other database settings is done vi
 
 ## Usage
 
-### Running the Event Consumer
+Use `make` to get the information about usage:
 
-```bash
-python event_consumer.py
 ```
+  make help           - Show this help message
+  make all            - Setup environment and run all services
+  make setup          - Initialize the environment (database and schema)
+  make db             - Start PostgreSQL container
+  make db-stop        - Stop PostgreSQL container
+  make init           - Initialize database schema
+  make run-consumer   - Run only the event consumer service
+  make run-propagator - Run only the event propagator service
+  make run            - Run both consumer and propagator services
+  make clean          - Stop services and clean up cache files
 
-### Running the Event Propagator
-
-```bash
-python event_propagator.py
-```
-
-### Running the whole suite using a dockerized postgres database
-```bash
-make
 ```
 
 ## Event Format

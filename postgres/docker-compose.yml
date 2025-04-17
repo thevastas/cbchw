@@ -1,6 +1,6 @@
 services:
-  postgres:
-    container_name: postgres
+  postgres_cybercare:
+    container_name: postgres_cybercare
     image: postgres:15
     env_file: .env
     shm_size: 10g
@@ -9,12 +9,6 @@ services:
     ports:
       - "5433:5432"
     command: postgres -c shared_preload_libraries=pg_stat_statements -c pg_stat_statements.track=all -c max_connections=200
-    networks:
-      - shared-network
     restart: always
-networks:
-  shared-network:
-    external: true
-    name: shared-network
 volumes:
   db:
