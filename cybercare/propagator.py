@@ -46,7 +46,8 @@ def send_event(event: Dict[str, Any], endpoint: str, timeout: int = 10) -> bool:
     """
     try:
         response = requests.post(endpoint, json=event, timeout=timeout)
-        if response.status_code == 200:
+        # Accept any 2xx status code as success (200-299)
+        if 200 <= response.status_code < 300:
             logging.info("Successfully sent event: %s", event)
             return True
         logging.warning(

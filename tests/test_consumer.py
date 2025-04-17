@@ -8,91 +8,99 @@ from cybercare.consumer import app, get_storage, validate_event
 client = TestClient(app)
 
 
-def test_validate_event_valid():
-    event = {"event_type": "message", "event_payload": "test"}
-    assert validate_event(event) is True
+@pytest.mark.parametrize(
+    "event,expected",
+    [
+        # Valid event
+        ({"event_type": "message", "event_payload": "test"}, True),
+        # Missing fields
+        ({"event_type": "message"}, False),
+        ({"event_payload": "test"}, False),
+        ({}, False),
+        # Wrong types
+        ({"event_type": 123, "event_payload": "test"}, False),
+        ({"event_type": "message", "event_payload": 123}, False),
+        ({"event_type": 123, "event_payload": 456}, False),
+        # Not a dict
+        ("not a dict", False),
+        (123, False),
+        (None, False),
+        # Edge cases
+        ({"event_type": "", "event_payload": ""}, True),  # Empty strings are valid
+        ({"event_type": "message", "event_payload": "a" * 1000}, True),  # Large payload
+        ({"event_type": "alert", "event_payload": "特殊文字"}, True),  # Unicode
+    ],
+)
+def test_validate_event(event, expected):
+    """Test the event validation function with various input scenarios."""
+    assert validate_event(event) is expected
 
 
-def test_validate_event_missing_fields():
-    event1 = {"event_type": "message"}
-    event2 = {"event_payload": "test"}
-    event3 = {}
-
-    assert validate_event(event1) is False
-    assert validate_event(event2) is False
-    assert validate_event(event3) is False
-
-
-def test_validate_event_wrong_type():
-    event1 = {"event_type": 123, "event_payload": "test"}
-    event2 = {"event_type": "message", "event_payload": 123}
-    event3 = {"event_type": 123, "event_payload": 456}
-
-    assert validate_event(event1) is False
-    assert validate_event(event2) is False
-    assert validate_event(event3) is False
-
-
-def test_validate_event_not_dict():
-    assert validate_event("not a dict") is False
-    assert validate_event(123) is False
-    assert validate_event(None) is False
-
-
-def override_get_storage():
-    mock_storage = MagicMock()
-    return mock_storage
-
-
-@pytest.mark.asyncio
-async def test_receive_event_invalid_json():
-    app.dependency_overrides[get_storage] = override_get_storage
-
-    response = client.post("/event", content=b"invalid json")
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Invalid JSON"}
-
+@pytest.fixture
+def mock_storage():
+    """Fixture to provide a mock storage object."""
+    mock = MagicMock()
+    app.dependency_overrides[get_storage] = lambda: mock
+    yield mock
     app.dependency_overrides.clear()
 
 
-@pytest.mark.asyncio
-async def test_receive_event_invalid_format():
-    app.dependency_overrides[get_storage] = override_get_storage
-
-    response = client.post("/event", json={"invalid": "format"})
-    assert response.status_code == 400
-    assert response.json() == {"detail": "Invalid event format"}
-
+@pytest.fixture
+def failing_storage():
+    """Fixture to provide a mock storage that fails to store events."""
+    mock = MagicMock()
+    mock.store_event.return_value = False
+    app.dependency_overrides[get_storage] = lambda: mock
+    yield mock
     app.dependency_overrides.clear()
 
 
-@pytest.mark.asyncio
-async def test_receive_event_storage_error():
-    def get_failing_storage():
-        mock_storage = MagicMock()
-        mock_storage.store_event.return_value = False
-        return mock_storage
+@pytest.fixture
+def successful_storage():
+    """Fixture to provide a mock storage that successfully stores events."""
+    mock = MagicMock()
+    mock.store_event.return_value = True
+    app.dependency_overrides[get_storage] = lambda: mock
+    yield mock
+    app.dependency_overrides.clear()
 
-    app.dependency_overrides[get_storage] = get_failing_storage
 
+@pytest.mark.parametrize(
+    "content,status_code,expected_response",
+    [
+        # Invalid JSON
+        (b"invalid json", 400, {"detail": "Invalid JSON"}),
+        # Invalid event format
+        ({"invalid": "format"}, 400, {"detail": "Invalid event format"}),
+    ],
+)
+def test_receive_event_invalid_input(
+    content, status_code, expected_response, mock_storage
+):
+    """Test receiving events with invalid inputs."""
+    if isinstance(content, bytes):
+        response = client.post("/event", content=content)
+    else:
+        response = client.post("/event", json=content)
+
+    assert response.status_code == status_code
+    assert response.json() == expected_response
+
+
+def test_receive_event_storage_error(failing_storage):
+    """Test receiving an event when storage fails."""
     response = client.post(
         "/event", json={"event_type": "message", "event_payload": "test"}
     )
     assert response.status_code == 500
     assert response.json() == {"detail": "Failed to store event"}
 
-    app.dependency_overrides.clear()
+    # Verify the mock was called with the correct event
+    failing_storage.store_event.assert_called_once()
 
 
-@pytest.mark.asyncio
-async def test_receive_event_success():
-    def get_successful_storage():
-        mock_storage = MagicMock()
-        mock_storage.store_event.return_value = True
-        return mock_storage
-
-    app.dependency_overrides[get_storage] = get_successful_storage
-
+def test_receive_event_success(successful_storage):
+    """Test successfully receiving and storing an event."""
     response = client.post(
         "/event", json={"event_type": "message", "event_payload": "test"}
     )
@@ -102,4 +110,5 @@ async def test_receive_event_success():
         "message": "Event stored successfully",
     }
 
-    app.dependency_overrides.clear()
+    # Verify the mock was called with the correct event
+    successful_storage.store_event.assert_called_once()

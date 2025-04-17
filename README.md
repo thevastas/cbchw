@@ -21,7 +21,6 @@ The system follows a simple architecture with clear separation of concerns:
 The project includes:
 - Unit tests for the Event Propagator
 - Unit tests for the Event Consumer
-- Unit tests for the PostgreSQL storage layer
 
 # Event Communication System
 

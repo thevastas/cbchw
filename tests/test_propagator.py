@@ -1,100 +1,165 @@
 import json
 import os
 import tempfile
-import unittest
 from unittest.mock import MagicMock, patch
+
+import pytest
 
 from cybercare.propagator import load_events, send_event
 
 
-class TestEventPropagator(unittest.TestCase):
-    def setUp(self):
-        self.test_events = [
-            {"event_type": "message", "event_payload": "test"},
-            {"event_type": "user_joined", "event_payload": "TestUser"},
-        ]
+@pytest.fixture
+def event_file():
+    """Fixture to create a temporary file with test events."""
+    test_events = [
+        {"event_type": "message", "event_payload": "test"},
+        {"event_type": "user_joined", "event_payload": "TestUser"},
+    ]
 
-        self.temp_file = tempfile.NamedTemporaryFile(delete=False, mode="w")
-        json.dump(self.test_events, self.temp_file)
-        self.temp_file.close()
+    temp_file = tempfile.NamedTemporaryFile(delete=False, mode="w")
+    json.dump(test_events, temp_file)
+    temp_file.close()
 
-    def tearDown(self):
-        os.unlink(self.temp_file.name)
+    yield temp_file.name, test_events
 
-    def test_load_events(self):
-        events = load_events(self.temp_file.name)
-        self.assertEqual(len(events), 2)
-        self.assertEqual(events[0]["event_type"], "message")
-        self.assertEqual(events[0]["event_payload"], "test")
-        self.assertEqual(events[1]["event_type"], "user_joined")
-        self.assertEqual(events[1]["event_payload"], "TestUser")
+    os.unlink(temp_file.name)
 
-    def test_load_events_nonexistent_file(self):
-        events = load_events("nonexistent_file.json")
-        self.assertEqual(events, [])
 
-    def test_load_events_invalid_json(self):
-        invalid_file = tempfile.NamedTemporaryFile(delete=False, mode="w")
-        invalid_file.write("This is not valid JSON")
-        invalid_file.close()
+def test_load_events(event_file):
+    """Test loading events from a valid JSON file."""
+    file_path, expected_events = event_file
+    events = load_events(file_path)
 
-        events = load_events(invalid_file.name)
-        self.assertEqual(events, [])
+    assert len(events) == len(expected_events)
+    assert events[0]["event_type"] == expected_events[0]["event_type"]
+    assert events[0]["event_payload"] == expected_events[0]["event_payload"]
+    assert events[1]["event_type"] == expected_events[1]["event_type"]
+    assert events[1]["event_payload"] == expected_events[1]["event_payload"]
 
-        os.unlink(invalid_file.name)
 
-    @patch("requests.post")
-    def test_send_event_success(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+@pytest.mark.parametrize(
+    "file_content,expected_result",
+    [
+        ("nonexistent_file.json", []),  # Nonexistent file
+        ("This is not valid JSON", []),  # Invalid JSON
+        ("[]", []),  # Empty array
+        ("{}", {}),  # Empty object - should return empty dict, not empty list
+    ],
+)
+def test_load_events_error_cases(file_content, expected_result):
+    """Test loading events with various error cases."""
+    if file_content == "nonexistent_file.json":
+        # Test nonexistent file
+        result = load_events(file_content)
+        assert result == expected_result
+    else:
+        # Test invalid content
+        temp_file = tempfile.NamedTemporaryFile(delete=False, mode="w")
+        temp_file.write(file_content)
+        temp_file.close()
 
-        event = {"event_type": "message", "event_payload": "test"}
-        result = send_event(event, "http://test-endpoint/event")
+        result = load_events(temp_file.name)
+        assert result == expected_result
 
-        self.assertTrue(result)
-        mock_post.assert_called_once_with(
-            "http://test-endpoint/event", json=event, timeout=10
-        )
+        os.unlink(temp_file.name)
 
-    @patch("requests.post")
-    def test_send_event_failure(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 500
-        mock_response.text = "Internal Server Error"
-        mock_post.return_value = mock_response
 
-        event = {"event_type": "message", "event_payload": "test"}
-        result = send_event(event, "http://test-endpoint/event")
+@pytest.mark.parametrize(
+    "status_code,response_text,expected_result",
+    [
+        (200, "", True),  # Success
+        (299, "OK", True),  # Any 2xx status code should be successful
+        (400, "Bad Request", False),  # Client error
+        (500, "Internal Server Error", False),  # Server error
+    ],
+)
+@patch("requests.post")
+def test_send_event_status_codes(
+    mock_post, status_code, response_text, expected_result
+):
+    """Test sending events with various HTTP status codes."""
+    mock_response = MagicMock()
+    mock_response.status_code = status_code
+    mock_response.text = response_text
+    mock_post.return_value = mock_response
 
-        self.assertFalse(result)
-        mock_post.assert_called_once_with(
-            "http://test-endpoint/event", json=event, timeout=10
-        )
+    event = {"event_type": "message", "event_payload": "test"}
+    result = send_event(event, "http://test-endpoint/event")
 
-    @patch("requests.post")
-    def test_send_event_exception(self, mock_post):
-        mock_post.side_effect = Exception("Connection error")
+    assert result is expected_result
+    mock_post.assert_called_once_with(
+        "http://test-endpoint/event", json=event, timeout=10
+    )
 
-        event = {"event_type": "message", "event_payload": "test"}
-        result = send_event(event, "http://test-endpoint/event")
 
-        self.assertFalse(result)
-        mock_post.assert_called_once_with(
-            "http://test-endpoint/event", json=event, timeout=10
-        )
+@pytest.mark.parametrize(
+    "exception,expected_result",
+    [
+        (Exception("Connection error"), False),
+        (TimeoutError("Request timed out"), False),
+        (ConnectionError("Failed to connect"), False),
+    ],
+)
+@patch("requests.post")
+def test_send_event_exceptions(mock_post, exception, expected_result):
+    """Test sending events with various exceptions."""
+    mock_post.side_effect = exception
 
-    @patch("requests.post")
-    def test_send_event_with_custom_timeout(self, mock_post):
-        mock_response = MagicMock()
-        mock_response.status_code = 200
-        mock_post.return_value = mock_response
+    event = {"event_type": "message", "event_payload": "test"}
+    result = send_event(event, "http://test-endpoint/event")
 
-        event = {"event_type": "message", "event_payload": "test"}
-        custom_timeout = 5
-        result = send_event(event, "http://test-endpoint/event", timeout=custom_timeout)
+    assert result is expected_result
+    mock_post.assert_called_once_with(
+        "http://test-endpoint/event", json=event, timeout=10
+    )
 
-        self.assertTrue(result)
-        mock_post.assert_called_once_with(
-            "http://test-endpoint/event", json=event, timeout=custom_timeout
-        )
+
+@pytest.mark.parametrize(
+    "timeout_value",
+    [
+        1,  # Very short timeout
+        5,  # Medium timeout
+        30,  # Long timeout
+    ],
+)
+@patch("requests.post")
+def test_send_event_custom_timeout(mock_post, timeout_value):
+    """Test sending events with various custom timeout values."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_post.return_value = mock_response
+
+    event = {"event_type": "message", "event_payload": "test"}
+    result = send_event(event, "http://test-endpoint/event", timeout=timeout_value)
+
+    assert result is True
+    mock_post.assert_called_once_with(
+        "http://test-endpoint/event", json=event, timeout=timeout_value
+    )
+
+
+@pytest.mark.parametrize(
+    "event_data",
+    [
+        {"event_type": "message", "event_payload": "test"},
+        {"event_type": "alert", "event_payload": "security alert"},
+        {"event_type": "user_joined", "event_payload": "TestUser"},
+        {
+            "event_type": "notification",
+            "event_payload": "{'user': 'admin', 'action': 'login'}",
+        },
+    ],
+)
+@patch("requests.post")
+def test_send_different_event_types(mock_post, event_data):
+    """Test sending different types of events."""
+    mock_response = MagicMock()
+    mock_response.status_code = 200
+    mock_post.return_value = mock_response
+
+    result = send_event(event_data, "http://test-endpoint/event")
+
+    assert result is True
+    mock_post.assert_called_once_with(
+        "http://test-endpoint/event", json=event_data, timeout=10
+    )

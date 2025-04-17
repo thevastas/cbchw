@@ -74,29 +74,17 @@ class PostgresEventStorage:
             bool: True if the event was stored successfully, False otherwise
         """
         try:
-            conn = self._get_connection()
-            cursor = conn.cursor()
-
-            cursor.execute(
-                sql.SQL(
-                    "INSERT INTO {} (event_type, event_payload) VALUES (%s, %s)"
-                ).format(sql.Identifier(self.table_name)),
-                (event.get("event_type", ""), event.get("event_payload", "")),
-            )
-
-            conn.commit()
-            cursor.close()
-            conn.close()
-
-            return True
-        except psycopg2.Error as e:
-            logging.error("Database error storing event: %s", e)
-            return False
-        except ConnectionError as e:
-            logging.error("Connection error storing event: %s", e)
-            return False
+            with self._get_connection() as conn:
+                with conn.cursor() as cursor:
+                    cursor.execute(
+                        sql.SQL(
+                            "INSERT INTO {} (event_type, event_payload) VALUES (%s, %s)"
+                        ).format(sql.Identifier(self.table_name)),
+                        (event.get("event_type", ""), event.get("event_payload", "")),
+                    )
+                return True
         except Exception as e:  # pylint: disable=broad-exception-caught
-            logging.error("Unexpected error storing event: %s", e)
+            logging.error("Error storing event: %s", e)
             return False
 
 
@@ -195,7 +183,7 @@ def main() -> None:
 
     app.state.storage = PostgresEventStorage(db_config)
 
-    logging.info("Starting Event Consumer service on %s:%s", host, port)
+    logging.info("Starting Event Cons   umer service on %s:%s", host, port)
     uvicorn.run(app, host=host, port=port)
 
 
