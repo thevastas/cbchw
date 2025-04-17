@@ -19,6 +19,7 @@ setup(
         "psycopg2-binary",
         "python-dotenv",
         "requests",
+        "httpx",
     ],
     extras_require={
         "dev": [

@@ -53,7 +53,9 @@ class TestEventPropagator(unittest.TestCase):
         result = send_event(event, "http://test-endpoint/event")
 
         self.assertTrue(result)
-        mock_post.assert_called_once_with("http://test-endpoint/event", json=event)
+        mock_post.assert_called_once_with(
+            "http://test-endpoint/event", json=event, timeout=10
+        )
 
     @patch("requests.post")
     def test_send_event_failure(self, mock_post):
@@ -66,7 +68,9 @@ class TestEventPropagator(unittest.TestCase):
         result = send_event(event, "http://test-endpoint/event")
 
         self.assertFalse(result)
-        mock_post.assert_called_once_with("http://test-endpoint/event", json=event)
+        mock_post.assert_called_once_with(
+            "http://test-endpoint/event", json=event, timeout=10
+        )
 
     @patch("requests.post")
     def test_send_event_exception(self, mock_post):
@@ -76,5 +80,22 @@ class TestEventPropagator(unittest.TestCase):
         result = send_event(event, "http://test-endpoint/event")
 
         self.assertFalse(result)
+        mock_post.assert_called_once_with(
+            "http://test-endpoint/event", json=event, timeout=10
+        )
 
-        mock_post.assert_called_once_with("http://test-endpoint/event", json=event)
+    # Add a new test for the timeout parameter
+    @patch("requests.post")
+    def test_send_event_with_custom_timeout(self, mock_post):
+        mock_response = MagicMock()
+        mock_response.status_code = 200
+        mock_post.return_value = mock_response
+
+        event = {"event_type": "message", "event_payload": "test"}
+        custom_timeout = 5
+        result = send_event(event, "http://test-endpoint/event", timeout=custom_timeout)
+
+        self.assertTrue(result)
+        mock_post.assert_called_once_with(
+            "http://test-endpoint/event", json=event, timeout=custom_timeout
+        )

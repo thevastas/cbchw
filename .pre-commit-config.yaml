@@ -1,7 +1,7 @@
 repos:
 # Basic pre-commit hooks
 -   repo: https://github.com/pre-commit/pre-commit-hooks
-    rev: v4.4.0
+    rev: v5.0.0
     hooks:
     -   id: trailing-whitespace
     -   id: end-of-file-fixer
@@ -19,18 +19,17 @@ repos:
 
 # Format code with black
 -   repo: https://github.com/psf/black
-    rev: 23.3.0
+    rev: 25.1.0
     hooks:
     -   id: black
         language_version: python3
 
 # Check code style with flake8
 -   repo: https://github.com/pycqa/flake8
-    rev: 6.0.0
+    rev: 7.2.0
     hooks:
     -   id: flake8
         additional_dependencies: [
-            # Add flake8 plugins as needed
             flake8-bugbear,
             flake8-comprehensions,
             flake8-docstrings,
@@ -43,7 +42,7 @@ repos:
 
 # Check with pylint
 -   repo: https://github.com/pycqa/pylint
-    rev: v2.17.0
+    rev: v3.3.6
     hooks:
     -   id: pylint
         name: pylint
@@ -51,15 +50,15 @@ repos:
         language: system
         types: [python]
         args: [
-            "--rcfile=.pylintrc",  # Use your pylintrc file
-            "--score=no",  # Don't show the score
-            "--disable=import-error",  # Avoid import errors in pre-commit environment
+            "--rcfile=.pylintrc",
+            "--score=no",
+            "--disable=import-error",
         ]
         exclude: ^(tests/|docs/)
 
 # Type checking with mypy (optional but recommended)
 -   repo: https://github.com/pre-commit/mirrors-mypy
-    rev: v1.3.0
+    rev: v1.15.0
     hooks:
     -   id: mypy
         additional_dependencies: [
